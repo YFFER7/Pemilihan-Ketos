@@ -15,6 +15,12 @@ if (isset($_POST['add_voter'])) {
     $token = $_POST['token'];
     $status = $_POST['status'];
 
+    // Validasi status yang diperbolehkan
+    $allowed_statuses = ['belum memilih', 'sudah memilih'];
+    if (!in_array($status, $allowed_statuses)) {
+        die('Invalid status value: ' . htmlspecialchars($status));
+    }
+
     $sql = 'INSERT INTO voters (nama_lengkap, kelas, token, status) VALUES (?, ?, ?, ?)';
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$nama_lengkap, $kelas, $token, $status]);
@@ -30,7 +36,12 @@ if (isset($_POST['update_voter'])) {
     $kelas = $_POST['kelas'];
     $token = $_POST['token'];
     $status = $_POST['status'];
-    $hasil = $_POST['hasil']; // Menambahkan hasil ke update
+    $hasil = $_POST['hasil'];
+
+    // Validasi status
+    if (!in_array($status, $allowed_statuses)) {
+        die('Invalid status value');
+    }
 
     $sql = 'UPDATE voters SET nama_lengkap = ?, kelas = ?, token = ?, status = ?, hasil = ? WHERE id = ?';
     $stmt = $pdo->prepare($sql);
@@ -45,7 +56,7 @@ if (isset($_GET['delete_vote_id'])) {
     $id = $_GET['delete_vote_id'];
 
     // Logika untuk menghapus suara terkait dengan pemilih
-    $sql = 'UPDATE voters SET status = "belum_memilih", hasil = NULL WHERE id = ?';
+    $sql = 'UPDATE voters SET status = "belum memilih", hasil = NULL WHERE id = ?';
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$id]);
 
@@ -72,7 +83,6 @@ $stmt = $pdo->query($sql);
 $voters = $stmt->fetchAll();
 ?>
 
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -95,11 +105,11 @@ $voters = $stmt->fetchAll();
 
     <!-- Loader -->
     <link href="assets/css/pace.min.css" rel="stylesheet" />
-    <script src="assets/js/pace.min.js"></script>
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="../assets/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&family=Roboto&display=swap" />
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&family=Roboto&display=swap" />
 
     <!-- Icons CSS -->
     <link rel="stylesheet" href="../assets/css/icons.css" />
@@ -108,16 +118,8 @@ $voters = $stmt->fetchAll();
     <link rel="stylesheet" href="../assets/css/app.css" />
     <link rel="stylesheet" href="../assets/css/dark-sidebar.css" />
     <link rel="stylesheet" href="../assets/css/dark-theme.css" />
-    <!-- Link ke Chart.js dan chartjs-plugin-datalabels -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
-
 </head>
 
 <body>
@@ -167,12 +169,13 @@ $voters = $stmt->fetchAll();
             <div class="page-content-wrapper">
                 <div class="page-content">
                     <div class="row">
-                        <button type="button" class="btn btn-primary mb-4" data-bs-toggle="modal" data-bs-target="#addVoterModal">
+                        <button type="button" class="btn btn-primary mb-4" data-bs-toggle="modal"
+                            data-bs-target="#addVoterModal">
                             Tambah Pemilih
                         </button>
                         <!-- Tabel Data Pemilih -->
                         <div class="table-responsive">
-                            <table id="votersTable" class="table table-bordered">
+                            <table id="votersTable" class="table table-bordered table-sm table-hover table-striped text-center">
                                 <thead>
                                     <tr>
                                         <th>No</th>
@@ -188,15 +191,21 @@ $voters = $stmt->fetchAll();
                                     <?php foreach ($voters as $index => $voter): ?>
                                     <tr>
                                         <td><?php echo $index + 1; ?></td>
-                                        <td><?php echo htmlspecialchars($voter['nama_lengkap']); ?></td>
-                                        <td><?php echo htmlspecialchars($voter['kelas']); ?></td>
-                                        <td><?php echo htmlspecialchars($voter['token']); ?></td>
-                                        <td><?php echo htmlspecialchars($voter['status']); ?></td>
-                                        <td><?php echo htmlspecialchars($voter['hasil']) ?: 'Belum Memilih'; ?></td> <!-- Tampilkan hasil jika ada -->
+                                        <td><?php echo htmlspecialchars($voter['nama_lengkap'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($voter['kelas'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($voter['token'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($voter['status'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($voter['hasil'] ?? 'Belum Memilih'); ?></td>
                                         <td>
                                             <!-- Tombol Hapus Suara dan Hapus Akun -->
-                                            <a href="pemilih.php?delete_vote_id=<?php echo $voter['id']; ?>" class="btn btn-warning btn-sm" onclick="return confirm('Apakah Anda yakin ingin menghapus suara pemilih ini?');">Hapus Suara</a>
-                                            <a href="pemilih.php?delete_account_id=<?php echo $voter['id']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Apakah Anda yakin ingin menghapus akun pemilih ini?');">Hapus Akun</a>
+                                            <a href="pemilih.php?delete_vote_id=<?php echo $voter['id']; ?>"
+                                                class="btn btn-warning btn-sm"
+                                                onclick="return confirm('Apakah Anda yakin ingin menghapus suara pemilih ini?');">Hapus
+                                                Suara</a>
+                                            <a href="pemilih.php?delete_account_id=<?php echo $voter['id']; ?>"
+                                                class="btn btn-danger btn-sm"
+                                                onclick="return confirm('Apakah Anda yakin ingin menghapus akun pemilih ini?');">Hapus
+                                                Akun</a>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
@@ -209,7 +218,8 @@ $voters = $stmt->fetchAll();
         </div>
 
         <!-- Modal Tambah Pemilih -->
-        <div class="modal fade" id="addVoterModal" tabindex="-1" aria-labelledby="addVoterModalLabel" aria-hidden="true">
+        <div class="modal fade" id="addVoterModal" tabindex="-1" aria-labelledby="addVoterModalLabel"
+            aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -220,7 +230,8 @@ $voters = $stmt->fetchAll();
                         <div class="modal-body">
                             <div class="mb-3">
                                 <label for="nama_lengkap" class="form-label">Nama Lengkap</label>
-                                <input type="text" class="form-control" id="nama_lengkap" name="nama_lengkap" required>
+                                <input type="text" class="form-control" id="nama_lengkap" name="nama_lengkap"
+                                    required>
                             </div>
                             <div class="mb-3">
                                 <label for="kelas" class="form-label">Kelas</label>
@@ -233,8 +244,8 @@ $voters = $stmt->fetchAll();
                             <div class="mb-3">
                                 <label for="status" class="form-label">Status</label>
                                 <select class="form-select" id="status" name="status" required>
-                                    <option value="belum_memilih">Belum Memilih</option>
-                                    <option value="sudah_memilih">Sudah Memilih</option>
+                                    <option value="belum memilih">Belum Memilih</option>
+                                    <option value="sudah memilih">Sudah Memilih</option>
                                 </select>
                             </div>
                         </div>
@@ -248,19 +259,22 @@ $voters = $stmt->fetchAll();
         </div>
 
         <!-- Modal Edit Pemilih -->
-        <div class="modal fade" id="editVoterModal" tabindex="-1" aria-labelledby="editVoterModalLabel" aria-hidden="true">
+        <div class="modal fade" id="editVoterModal" tabindex="-1" aria-labelledby="editVoterModalLabel"
+            aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="editVoterModalLabel">Edit Pemilih</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
                     </div>
                     <form action="pemilih.php" method="POST">
                         <input type="hidden" name="id" id="editVoterId">
                         <div class="modal-body">
                             <div class="mb-3">
                                 <label for="edit_nama_lengkap" class="form-label">Nama Lengkap</label>
-                                <input type="text" class="form-control" id="edit_nama_lengkap" name="nama_lengkap" required>
+                                <input type="text" class="form-control" id="edit_nama_lengkap"
+                                    name="nama_lengkap" required>
                             </div>
                             <div class="mb-3">
                                 <label for="edit_kelas" class="form-label">Kelas</label>
@@ -284,7 +298,8 @@ $voters = $stmt->fetchAll();
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                            <button type="submit" class="btn btn-primary" name="update_voter">Simpan Perubahan</button>
+                            <button type="submit" class="btn btn-primary" name="update_voter">Simpan
+                                Perubahan</button>
                         </div>
                     </form>
                 </div>
@@ -296,7 +311,15 @@ $voters = $stmt->fetchAll();
         <script src="../assets/js/jquery.min.js"></script>
         <script src="../assets/js/app.js"></script>
         <script src="../assets/js/dark-mode.js"></script>
-
+        <!-- Loader -->
+        <script src="assets/js/pace.min.js"></script>
+        <!-- jQuery -->
+        <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+        <!-- DataTables JS -->
+        <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+        <!-- Link ke Chart.js dan chartjs-plugin-datalabels -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
         <!-- Inisialisasi DataTables -->
         <script>
             $(document).ready(function() {
